@@ -1,79 +1,97 @@
-import { useState } from 'react';
+import { useState, FormEvent } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Bus, Mail, Lock, User, Shield } from 'lucide-react';
+import { Mail, Lock, User, Shield } from 'lucide-react';
 import { toast } from 'sonner';
 import lnmiitLogo from '@/assets/lnmiit-logo.png';
+import apiFetch from '@/lib/api';
+import { useAuth } from '@/hooks/useAuth';
 
 const Index = () => {
   const navigate = useNavigate();
-  const [isLogin, setIsLogin] = useState(true);
-  
+  const { saveAuth } = useAuth();
+  const [isLoginView, setIsLoginView] = useState(true);
+  const [isLoading, setIsLoading] = useState(false);
+
   // Login form state
   const [loginEmail, setLoginEmail] = useState('');
   const [loginPassword, setLoginPassword] = useState('');
-  
+
   // Signup form state
   const [signupName, setSignupName] = useState('');
   const [signupEmail, setSignupEmail] = useState('');
   const [signupPassword, setSignupPassword] = useState('');
   const [signupConfirmPassword, setSignupConfirmPassword] = useState('');
 
-  const handleLogin = (e: React.FormEvent) => {
+  const handleLogin = async (e: FormEvent) => {
     e.preventDefault();
+    setIsLoading(true);
     
     if (!loginEmail || !loginPassword) {
       toast.error('Please fill in all fields');
+      setIsLoading(false);
       return;
     }
 
-    // Simple mock validation
-    if (loginEmail === 'admin@lnmiit.ac.in') {
-      toast.success('Admin login successful!');
-      navigate('/admin-dashboard');
-    } else if (loginEmail.includes('@lnmiit.ac.in')) {
-        toast.success('Login successful!');
+    try {
+      const data = await apiFetch('/auth/login', {
+        method: 'POST',
+        body: { email: loginEmail, password: loginPassword },
+      });
+
+      saveAuth(data); // Save token and user info
+      toast.success('Login successful!');
+      
+      if (data.role === 'admin') {
+        navigate('/admin-dashboard');
+      } else {
         navigate('/student-dashboard');
       }
-    else {
-      toast.error('Invalid college email');
+    } catch (error: any) {
+      toast.error(error.message);
+    } finally {
+      setIsLoading(false);
     }
   };
 
-  const handleSignup = (e: React.FormEvent) => {
+  const handleSignup = async (e: FormEvent) => {
     e.preventDefault();
-    
+    setIsLoading(true);
+
     if (!signupName || !signupEmail || !signupPassword || !signupConfirmPassword) {
       toast.error('Please fill in all fields');
-      return;
-    }
-
-    if (!signupEmail.includes('@lnmiit.ac.in')) {
-      toast.error('Please use your college email address');
+      setIsLoading(false);
       return;
     }
 
     if (signupPassword !== signupConfirmPassword) {
       toast.error('Passwords do not match');
+      setIsLoading(false);
       return;
     }
 
-    if (signupPassword.length < 6) {
-      toast.error('Password must be at least 6 characters');
-      return;
-    }
+    try {
+      await apiFetch('/auth/register', {
+        method: 'POST',
+        body: { signupName, signupEmail, signupPassword, signupConfirmPassword },
+      });
 
-    toast.success('Account created successfully! Please login.');
-    setIsLogin(true);
-    setLoginEmail(signupEmail);
+      toast.success('Account created successfully! Please login.');
+      setIsLoginView(true);
+      setLoginEmail(signupEmail);
+      setLoginPassword('');
+    } catch (error: any) {
+      toast.error(error.message);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const handleAdminLogin = () => {
-    toast.success('Redirecting to admin login...');
     setLoginEmail('admin@lnmiit.ac.in');
   };
 
@@ -103,7 +121,7 @@ const Index = () => {
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <Tabs value={isLogin ? 'login' : 'signup'} onValueChange={(v) => setIsLogin(v === 'login')}>
+              <Tabs value={isLoginView ? 'login' : 'signup'} onValueChange={(v) => setIsLoginView(v === 'login')}>
                 <TabsList className="grid w-full grid-cols-2 mb-6">
                   <TabsTrigger value="login">Login</TabsTrigger>
                   <TabsTrigger value="signup">Sign Up</TabsTrigger>
@@ -123,6 +141,7 @@ const Index = () => {
                           className="pl-10"
                           value={loginEmail}
                           onChange={(e) => setLoginEmail(e.target.value)}
+                          disabled={isLoading}
                         />
                       </div>
                     </div>
@@ -138,6 +157,7 @@ const Index = () => {
                           className="pl-10"
                           value={loginPassword}
                           onChange={(e) => setLoginPassword(e.target.value)}
+                          disabled={isLoading}
                         />
                       </div>
                     </div>
@@ -145,8 +165,9 @@ const Index = () => {
                     <Button 
                       type="submit" 
                       className="w-full bg-gradient-to-r from-primary to-accent hover:opacity-90 h-11 text-base font-semibold"
+                      disabled={isLoading}
                     >
-                      Sign In
+                      {isLoading ? 'Signing In...' : 'Sign In'}
                     </Button>
 
                     <div className="relative my-6">
@@ -163,6 +184,7 @@ const Index = () => {
                       variant="outline" 
                       className="w-full"
                       onClick={handleAdminLogin}
+                      disabled={isLoading}
                     >
                       <Shield className="h-4 w-4 mr-2" />
                       Admin Login
@@ -184,6 +206,7 @@ const Index = () => {
                           className="pl-10"
                           value={signupName}
                           onChange={(e) => setSignupName(e.target.value)}
+                          disabled={isLoading}
                         />
                       </div>
                     </div>
@@ -199,6 +222,7 @@ const Index = () => {
                           className="pl-10"
                           value={signupEmail}
                           onChange={(e) => setSignupEmail(e.target.value)}
+                          disabled={isLoading}
                         />
                       </div>
                       <p className="text-xs text-muted-foreground">
@@ -213,10 +237,11 @@ const Index = () => {
                         <Input
                           id="signup-password"
                           type="password"
-                          placeholder="Create password (min 6 characters)"
+                          placeholder="Create password"
                           className="pl-10"
                           value={signupPassword}
                           onChange={(e) => setSignupPassword(e.target.value)}
+                          disabled={isLoading}
                         />
                       </div>
                     </div>
@@ -232,6 +257,7 @@ const Index = () => {
                           className="pl-10"
                           value={signupConfirmPassword}
                           onChange={(e) => setSignupConfirmPassword(e.target.value)}
+                          disabled={isLoading}
                         />
                       </div>
                     </div>
@@ -239,8 +265,9 @@ const Index = () => {
                     <Button 
                       type="submit" 
                       className="w-full bg-gradient-to-r from-primary to-accent hover:opacity-90 h-11 text-base font-semibold"
+                      disabled={isLoading}
                     >
-                      Create Account
+                      {isLoading ? 'Creating Account...' : 'Create Account'}
                     </Button>
                   </form>
                 </TabsContent>

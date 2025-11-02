@@ -10,6 +10,8 @@ import AdminDashboard from "./pages/AdminDashboard";
 import Timetable from "./pages/Timetable";
 import MyBookings from "./pages/MyBookings";
 import NotFound from "./pages/NotFound";
+import StudentProtectedRoute from "./components/ui/StudentProtectedRoute";
+import AdminProtectedRoute from "./components/ui/AdminProtectedRoute";
 
 const queryClient = new QueryClient();
 
@@ -21,12 +23,21 @@ const App = () => (
       <BrowserRouter>
         <Routes>
           <Route path="/" element={<Index />} />
-          <Route path="/student-dashboard" element={<StudentDashboard />} />
-          <Route path="/book-seat/:busId" element={<BookSeat />} />
-          <Route path="/admin-dashboard" element={<AdminDashboard />} />
-          <Route path="/timetable" element={<Timetable />} />
-          <Route path="/my-bookings" element={<MyBookings />} />
-          {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
+
+          {/* Student Protected Routes */}
+          <Route element={<StudentProtectedRoute />}>
+            <Route path="/student-dashboard" element={<StudentDashboard />} />
+            <Route path="/book-seat/:busId" element={<BookSeat />} />
+            <Route path="/timetable" element={<Timetable />} />
+            <Route path="/my-bookings" element={<MyBookings />} />
+          </Route>
+
+          {/* Admin Protected Routes */}
+          <Route element={<AdminProtectedRoute />}>
+            <Route path="/admin-dashboard" element={<AdminDashboard />} />
+          </Route>
+
+          {/* CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>
       </BrowserRouter>
